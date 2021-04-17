@@ -81,8 +81,6 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			name := field.Name
 
 			requestType := field.Func.Type().In(2)
-			log.Println(requestType)
-
 			requestValue := reflect.New(requestType)
 			requestSpec := requestValue.Interface()
 			faker.SetRandomStringLength(1)
