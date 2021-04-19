@@ -11,15 +11,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/bxcodec/faker/v3"
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 )
 
 // devServer :
 type devServer struct {
-	Password string
-	Handler  interface{}
+	options *Options
 }
 
 type devRequest struct {
@@ -33,8 +31,21 @@ type devRequestSpec struct {
 	Request  string `json:"request"`
 }
 
+// Options :
+type Options struct {
+	handler interface{}
+
+	Password         string
+	RequestGenerator func(string, interface{}) interface{}
+}
+
 // Start :
-func Start(port string, password string, handler interface{}, server *grpc.Server) {
+func Start(port string, server *grpc.Server, handler interface{}, opt *Options) {
+	if opt == nil {
+		opt = new(Options)
+	}
+	opt.handler = handler
+
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatalf(ErrFailToListen, err)
@@ -45,12 +56,7 @@ func Start(port string, password string, handler interface{}, server *grpc.Serve
 	grpcListen := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 	httpListen := m.Match(cmux.HTTP1Fast())
 	go server.Serve(grpcListen)
-	go http.Serve(
-		httpListen, devServer{
-			Password: password,
-			Handler:  handler,
-		},
-	)
+	go http.Serve(httpListen, devServer{opt})
 	log.Fatal(m.Serve())
 }
 
@@ -61,9 +67,9 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, x-oscrud-dev")
 
-	if dev.Password != "" {
+	if dev.options.Password != "" {
 		password := r.Header.Get("x-oscrud-dev")
-		if password == "" || password != dev.Password {
+		if password == "" || password != dev.options.Password {
 			w.Write([]byte(ErrInvalidPassword))
 			return
 		}
@@ -74,8 +80,8 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		specs := make([]devRequestSpec, 0)
 
-		rValue := reflect.ValueOf(dev.Handler)
-		rType := reflect.TypeOf(dev.Handler)
+		rValue := reflect.ValueOf(dev.options.handler)
+		rType := reflect.TypeOf(dev.options.handler)
 		for i := 0; i < rValue.NumMethod(); i++ {
 			field := rType.Method(i)
 			name := field.Name
@@ -83,8 +89,9 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			requestType := field.Func.Type().In(2)
 			requestValue := reflect.New(requestType)
 			requestSpec := requestValue.Interface()
-			faker.SetRandomStringLength(1)
-			faker.FakeData(requestSpec)
+			if dev.options.RequestGenerator != nil {
+				requestSpec = dev.options.RequestGenerator(name, requestSpec)
+			}
 
 			bytes, _ := json.Marshal(requestSpec)
 			specs = append(specs, devRequestSpec{
@@ -110,7 +117,7 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rValue := reflect.ValueOf(dev.Handler)
+		rValue := reflect.ValueOf(dev.options.handler)
 		method := rValue.MethodByName(req.Endpoint)
 
 		params := make([]reflect.Value, 0)
