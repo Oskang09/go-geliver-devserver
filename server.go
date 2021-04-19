@@ -36,7 +36,7 @@ type Options struct {
 	handler interface{}
 
 	Password         string
-	RequestGenerator func(string, interface{}) interface{}
+	RequestMarshaler func(string, interface{}) interface{}
 }
 
 // Start :
@@ -89,8 +89,8 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			requestType := field.Func.Type().In(2)
 			requestValue := reflect.New(requestType)
 			requestSpec := requestValue.Interface()
-			if dev.options.RequestGenerator != nil {
-				requestSpec = dev.options.RequestGenerator(name, requestSpec)
+			if dev.options.RequestMarshaler != nil {
+				requestSpec = dev.options.RequestMarshaler(name, requestSpec)
 			}
 
 			bytes, _ := json.Marshal(requestSpec)
