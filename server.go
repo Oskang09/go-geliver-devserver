@@ -36,7 +36,7 @@ type Options struct {
 	handler interface{}
 
 	Password         string
-	RequestMarshaler func(string, interface{}) []byte
+	RequestMarshaler func(string, reflect.Type) []byte
 }
 
 // Start :
@@ -87,12 +87,12 @@ func (dev devServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			name := field.Name
 
 			requestType := field.Func.Type().In(2)
-			requestValue := reflect.New(requestType)
-			requestSpec := requestValue.Interface()
 			var bytes []byte
 			if dev.options.RequestMarshaler != nil {
-				bytes = dev.options.RequestMarshaler(name, requestSpec)
+				bytes = dev.options.RequestMarshaler(name, requestType)
 			} else {
+				requestValue := reflect.New(requestType)
+				requestSpec := requestValue.Interface()
 				bytes, _ = json.Marshal(requestSpec)
 			}
 
