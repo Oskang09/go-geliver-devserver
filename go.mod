@@ -1,4 +1,4 @@
-module github.com/oscrud/devserver
+module github.com/oscrud/go-geliver-devserver
 
 go 1.15
 
