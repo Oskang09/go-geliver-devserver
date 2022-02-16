@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	devserver.Start(portNo, server.Server, user, &devserver.Options{
+	devserver.Start(portNo, server, handler, &devserver.Options{
 		RequestMarshaler: func(name string, rType reflect.Type) []byte {
 			rValue := reflect.New(rType.Elem())
 			message := rValue.Interface().(proto.Message)
