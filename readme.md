@@ -1,3 +1,5 @@
+> :warning: **geliver-vscode is now support `.proto` files**: This repository will be deprecated and will no longer updates anymore. https://github.com/Oskang09/geliver-vscode
+
 # Development Server
 
 This dev server is for third party grpc server to integrate for working with `geliver`.
@@ -9,7 +11,7 @@ Basically it's just using reflection loop through method to *GET* all request an
 
 # Frontend UI
 
-For frontend ui, you can choose to use VSCode Extension `https://marketplace.visualstudio.com/items?itemName=Oskang09.geliver` or open in browser at `https://oskang09.github.io/geliver/`. Currently browser is recommended, vscode extension need some improvement and some limitations to deal with local storage & indexeddb.
+For frontend ui open in browser at `https://oskang09.github.io/geliver/`. Currently browser is available for geliver devserver, vscode extension will natively work with `.proto`.
 
 # Example Server Setup
 
